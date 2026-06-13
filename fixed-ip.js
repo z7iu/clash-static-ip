@@ -59,16 +59,25 @@ const AI_RULES = [
   'DOMAIN-SUFFIX,ipinfo.io',         // IP 归属/ASN 权威数据库 https://ipinfo.io/what-is-my-ip
 ]
 
+// 强制直连的域名（公司内网 / 国内服务，绕过所有代理，最先匹配）
+const DIRECT_RULES = [
+  'DOMAIN-SUFFIX,tmeoa.com',
+  'DOMAIN-SUFFIX,figma.com',
+  'DOMAIN-SUFFIX,lexiangla.com',
+  'DOMAIN-SUFFIX,tencent.com',
+  'DOMAIN-SUFFIX,tencentmusic.com',
+]
+
 function main(config) {
   if (!config || !Array.isArray(config.proxies) || config.proxies.length === 0) return config
   if (!Array.isArray(config['proxy-groups'])) config['proxy-groups'] = []
   if (!Array.isArray(config.rules)) config.rules = []
 
-  // 1. 前置候选：优先美国节点（落地 69.3.141.65 在美国，延迟最优），没有则用全部节点
+  // 前置候选：优先美国节点（落地 69.3.141.65 在美国，延迟最优），没有则用全部节点
   var allNames = config.proxies.map(function(p) { return p && p.name }).filter(Boolean)
   var usNames  = allNames.filter(function(n) { return /美国|USA|\bUS\b|🇺🇸/i.test(n) })
 
-  // 2. socks5 落地节点，dialer-proxy 实现「机场 → 静态IP」链式
+  // socks5 落地节点，dialer-proxy 实现「机场 → 静态IP」链式
   var exitNode = {
     name: EXIT,
     type: 'socks5',
@@ -82,24 +91,28 @@ function main(config) {
   if (STATIC_EXIT.TLS) { exitNode.tls = true; exitNode['skip-cert-verify'] = true }
   config.proxies.push(exitNode)
 
-  // 3. 前置组（url-test 自动选优、断线自愈，出口 IP 始终不变）
+  // 前置组（url-test 自动选优、断线自愈，出口 IP 始终不变）
   var frontGroup = {
     name: FRONT, type: 'url-test',
     url: 'https://www.gstatic.com/generate_204', interval: 300, tolerance: 50,
     proxies: (usNames.length > 0 ? usNames : allNames).slice(),
   }
 
-  // 4. AI 服务组：默认走静态落地；备选订阅自带的「🚀 节点选择」和 DIRECT
+  // AI 服务组：默认走静态落地；备选订阅自带的「🚀 节点选择」和 DIRECT
   var existingNames = new Set(config['proxy-groups'].map(function(g) { return g && g.name }))
   var aiProxies = [EXIT]
   if (existingNames.has('🚀 节点选择')) aiProxies.push('🚀 节点选择')
   aiProxies.push('DIRECT')
   var aiGroup = { name: AI, type: 'select', proxies: aiProxies }
 
-  // 5. AI 组放最前面方便操作；AI 规则插到所有规则之前（最先匹配）
+  // AI 组放最前面方便操作；AI 规则插到所有规则之前（最先匹配）
   config['proxy-groups'] = [aiGroup, frontGroup].concat(config['proxy-groups'])
-  config.rules = AI_RULES.map(function(r) { return r + ',' + AI }).concat(config.rules)
+  var drRules = DIRECT_RULES.map(function(r) { return r + ',DIRECT' })
+  var aiRules = AI_RULES.map(function(r) { return r + ',' + AI })
 
-  console.log('[ai-fixed-ip] exit=' + STATIC_EXIT.SERVER + ' front=' + (usNames.length || allNames.length) + ' nodes, +' + AI_RULES.length + ' rules')
+  // 规则优先级：直连规则 > AI 规则 > 订阅自带规则（Clash 按顺序匹配，先命中先生效）
+  config.rules = drRules.concat(aiRules).concat(config.rules)
+
+  console.log('[ai-fixed-ip] exit=' + STATIC_EXIT.SERVER + ' front=' + (usNames.length || allNames.length) + ' nodes, +' + DIRECT_RULES.length + ' direct, +' + AI_RULES.length + ' ai rules')
   return config
 }
