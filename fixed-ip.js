@@ -59,15 +59,6 @@ const AI_RULES = [
   'DOMAIN-SUFFIX,ipinfo.io',         // IP 归属/ASN 权威数据库 https://ipinfo.io/what-is-my-ip
 ]
 
-// 强制直连的域名（公司内网 / 国内服务，绕过所有代理，最先匹配）
-const DIRECT_RULES = [
-  'DOMAIN-SUFFIX,tmeoa.com',
-  'DOMAIN-SUFFIX,figma.com',
-  'DOMAIN-SUFFIX,lexiangla.com',
-  'DOMAIN-SUFFIX,tencent.com',
-  'DOMAIN-SUFFIX,tencentmusic.com',
-]
-
 function main(config) {
   if (!config || !Array.isArray(config.proxies) || config.proxies.length === 0) return config
   if (!Array.isArray(config['proxy-groups'])) config['proxy-groups'] = []
@@ -107,12 +98,11 @@ function main(config) {
 
   // AI 组放最前面方便操作；AI 规则插到所有规则之前（最先匹配）
   config['proxy-groups'] = [aiGroup, frontGroup].concat(config['proxy-groups'])
-  var drRules = DIRECT_RULES.map(function(r) { return r + ',DIRECT' })
   var aiRules = AI_RULES.map(function(r) { return r + ',' + AI })
 
-  // 规则优先级：直连规则 > AI 规则 > 订阅自带规则（Clash 按顺序匹配，先命中先生效）
-  config.rules = drRules.concat(aiRules).concat(config.rules)
+  // 规则优先级：AI 规则 > 订阅自带规则（Clash 按顺序匹配，先命中先生效）
+  config.rules = aiRules.concat(config.rules)
 
-  console.log('[ai-fixed-ip] exit=' + STATIC_EXIT.SERVER + ' front=' + (usNames.length || allNames.length) + ' nodes, +' + DIRECT_RULES.length + ' direct, +' + AI_RULES.length + ' ai rules')
+  console.log('[ai-fixed-ip] exit=' + STATIC_EXIT.SERVER + ' front=' + (usNames.length || allNames.length) + ' nodes, +' + AI_RULES.length + ' ai rules')
   return config
 }
