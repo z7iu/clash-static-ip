@@ -1,4 +1,4 @@
-# clash-fixed-ip
+# clash-static-ip
 
 > 一份约 100 行的最小化覆写脚本：让 ChatGPT / Claude 等强风控服务从同一个**固定住宅 IP** 出口，其余流量不受任何影响。
 
@@ -31,11 +31,11 @@
 1. 准备资源：
    - 一个或多个**机场订阅**（节点多、带宽好，但 IP 是机房的、会变）；
    - 一个**海外静态住宅 IP**，形如 `socks5://用户名:密码@IP:端口`（IP 固定、干净）。
-2. 打开 [`fixed-ip.js`](fixed-ip.js)，修改顶部 `STATIC_EXIT` 的 4 个值为你自己的 socks5 信息。
+2. 打开 [`static-ip.js`](static-ip.js)，修改顶部 `STATIC_EXIT` 的 4 个值为你自己的 socks5 信息。
 3. Clash Party → **订阅** → **覆写（Override）** → 添加为 **JavaScript 脚本** → **更新订阅**。
 4. 面板里把 **🧠 智能服务** 组选为 **📍 静态落地** 即可。
 
-> 完整脚本见 [`fixed-ip.js`](fixed-ip.js)，下文是背景与设计思路。
+> 完整脚本见 [`static-ip.js`](static-ip.js)，下文是背景与设计思路。
 
 ## 📑 目录
 
@@ -85,7 +85,7 @@
 
 ### 2.3 完整覆写脚本
 
-脚本位于 [`fixed-ip.js`](fixed-ip.js)，约 100 行，不依赖任何外部规则集。使用方式：
+脚本位于 [`static-ip.js`](static-ip.js)，约 100 行，不依赖任何外部规则集。使用方式：
 
 > Clash Party → 订阅 → 覆写（Override）→ 添加为 JavaScript 脚本 → 更新订阅。
 > 多份订阅可共用同一个脚本。脚本会自动识别订阅里的美国节点作前置，不依赖特定机场。
@@ -115,7 +115,7 @@ const STATIC_EXIT = {
 4. 新增 `select` 类型的 AI 服务组，默认走静态落地，备选订阅自带的「🚀 节点选择」与 `DIRECT`；
 5. 把 AI 组放最前、AI 规则插到所有规则之前（最先匹配）。
 
-完整实现见 [`fixed-ip.js`](fixed-ip.js)。
+完整实现见 [`static-ip.js`](static-ip.js)。
 
 </details>
 
