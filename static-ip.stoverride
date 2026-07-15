@@ -1,0 +1,72 @@
+name: 🧠 智能服务·静态落地
+desc: AI 服务走「机场美国前置 → socks5 静态住宅IP」固定出口，其余流量不受影响（Stash 版）
+
+# ============================================================
+# 更换静态 IP 服务商时只改下面这一个 socks5 节点的 4 个值
+#   server / port / username / password  ← 对应 socks5://USER:PASS@SERVER:PORT
+# ============================================================
+proxies:
+  - name: 📍 静态落地
+    type: socks5
+    server: YOUR_STATIC_IP
+    port: 443
+    username: YOUR_USERNAME
+    password: YOUR_PASSWORD
+    udp: true                 # 服务商不支持 UDP ASSOCIATE 时改为 false
+    dialer-proxy: 🛫 落地前置   # 链式：机场前置 → 静态IP 落地，出口 IP 始终不变
+    # 若 443 端口是 TLS 包裹的 socks5，取消下面两行注释：
+    # tls: true
+    # skip-cert-verify: true
+
+proxy-groups:
+  # AI 服务组：默认走静态落地；可临时切「只走前置(不落地)」或「直连」对比
+  - name: 🧠 智能服务
+    type: select
+    proxies:
+      - 📍 静态落地
+      - 🛫 落地前置
+      - DIRECT
+
+  # 前置组：自动把订阅里的美国节点纳入 url-test，测速选优、断线自愈
+  - name: 🛫 落地前置
+    type: url-test
+    include-all: true
+    filter: '(?i)(美国|united states|\bus\b|usa|🇺🇸)'
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+
+# AI 规则（离线可用，不依赖任何外部规则集）。数组默认插到订阅规则最前面，先命中先生效。
+# 注意：原脚本里的 PROCESS-NAME,Claude/ChatGPT 等是 macOS 桌面进程规则，iOS 无进程概念，已删除。
+rules:
+  # OpenAI / ChatGPT / Sora
+  - 'DOMAIN-SUFFIX,openai.com,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,chatgpt.com,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,oaistatic.com,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,oaiusercontent.com,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,sora.com,🧠 智能服务'
+  # Anthropic / Claude
+  - 'DOMAIN-SUFFIX,anthropic.com,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,claude.ai,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,claude.com,🧠 智能服务'
+  # Google Gemini（只圈 AI 子域，不影响其他谷歌流量）
+  - 'DOMAIN,gemini.google.com,🧠 智能服务'
+  - 'DOMAIN,aistudio.google.com,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,generativelanguage.googleapis.com,🧠 智能服务'
+  # xAI / Grok
+  - 'DOMAIN-SUFFIX,x.ai,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,grok.com,🧠 智能服务'
+  # Perplexity
+  - 'DOMAIN-SUFFIX,perplexity.ai,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,pplx.ai,🧠 智能服务'
+  # Meta AI / Mistral
+  - 'DOMAIN-SUFFIX,meta.ai,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,mistral.ai,🧠 智能服务'
+  # Microsoft Copilot
+  - 'DOMAIN,copilot.microsoft.com,🧠 智能服务'
+  # IP 检测站
+  - 'DOMAIN-SUFFIX,ping0.cc,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,scamalytics.com,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,browserleaks.com,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,whoer.net,🧠 智能服务'
+  - 'DOMAIN-SUFFIX,ipinfo.io,🧠 智能服务'
